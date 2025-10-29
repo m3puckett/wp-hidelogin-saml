@@ -4,7 +4,7 @@ Tags: login, security, saml, authentication, hide login
 Requires at least: 5.0
 Tested up to: 6.4
 Requires PHP: 7.4
-Stable tag: 2.1.2
+Stable tag: 2.1.3
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 
@@ -114,6 +114,11 @@ Go to **Settings > SAML Hide Login**, check the **Enable automatic redirect to S
 3. Debug information panel
 
 == Changelog ==
+
+= 2.1.3 =
+* Fixed auto-redirect to SAML functionality
+* Improved handling of logged-in users visiting the login page
+* When auto-redirect is enabled, logged-in users are now redirected to wp-admin instead of seeing the login form
 
 = 2.1.0 =
 * Fixed SAML authentication compatibility

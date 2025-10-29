@@ -3,7 +3,7 @@
  * Plugin Name: Hide WP Login SAML
  * Plugin URI: https://github.com/m3puckett/wp-hidelogin-saml
  * Description: Hides the WordPress login page with a custom URL while preserving SAML authentication functionality
- * Version: 2.1.2
+ * Version: 2.1.3
  * Author: Mark Puckett
  * Author URI: https://github.com/m3puckett
  * License: GPL v3
@@ -23,7 +23,7 @@ if (!defined('ABSPATH')) {
 }
 
 // Plugin constants
-define('SHL_VERSION', '2.1.2');
+define('SHL_VERSION', '2.1.3');
 define('SHL_PLUGIN_FILE', __FILE__);
 define('SHL_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('SHL_DEBUG', true); // Set to true for debugging
@@ -269,7 +269,18 @@ class SAML_Hide_Login {
 
             shl_log('Redirect conditions - Enabled: ' . ($auto_redirect_enabled ? 'YES' : 'NO') . ', Logged in: ' . ($is_logged_in ? 'YES' : 'NO') . ', SAML request: ' . ($is_saml ? 'YES' : 'NO'));
 
-            if ($auto_redirect_enabled && !$is_logged_in && !$is_saml) {
+            // If auto-redirect is enabled and this is not a SAML callback
+            if ($auto_redirect_enabled && !$is_saml) {
+                // If user is already logged in, redirect them away from login page
+                if ($is_logged_in) {
+                    shl_log('User already logged in - redirecting to destination');
+                    // Get redirect_to parameter or default to admin
+                    $redirect_to = isset($_GET['redirect_to']) ? wp_validate_redirect($_GET['redirect_to'], admin_url()) : admin_url();
+                    wp_redirect($redirect_to);
+                    exit;
+                }
+
+                // User is not logged in, redirect to SAML SSO
                 shl_log('Auto-redirect to SAML enabled - redirecting to SAML SSO');
                 $saml_sso_url = site_url('wp-login.php?saml_sso');
 
