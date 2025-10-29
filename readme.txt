@@ -8,18 +8,21 @@ Stable tag: 2.1.4
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 
-Hides the WordPress login page with a custom URL while preserving SAML authentication functionality.
+Hides the WordPress login page with a custom URL. Works with standard WordPress authentication and is also compatible with SAML authentication.
 
 == Description ==
 
-Hide WP Login SAML-Aware provides enhanced security for your WordPress site by concealing the standard login URL (wp-login.php) and replacing it with a custom URL of your choice. This plugin is specifically designed to work seamlessly with SAML-based authentication systems, ensuring that SAML authentication requests continue to function properly while blocking unauthorized access attempts to the default login page.
+Hide WP Login SAML-Aware provides enhanced security for your WordPress site by concealing the standard login URL (wp-login.php) and replacing it with a custom URL of your choice.
+
+**SAML is completely optional.** This plugin works perfectly with standard WordPress authentication - you don't need any SAML setup to use it. The "SAML-Aware" name simply means that if you do use SAML authentication, this plugin won't break it (unlike other hide login plugins that can conflict with SAML systems).
 
 = Key Features =
 
 * **Custom Login URL**: Replace the default WordPress login URL with your own custom slug
-* **SAML Compatibility**: Automatically allows SAML authentication requests to pass through
+* **Works Without SAML**: Perfect for standard WordPress sites - no SAML required
+* **SAML Compatible**: If you do use SAML, it automatically preserves SAML authentication
 * **Auto-Redirect to SAML**: Optional automatic redirection to SAML SSO when accessing the login page
-* **Security Enhancement**: Blocks direct access to wp-login.php for non-SAML requests
+* **Security Enhancement**: Blocks direct access to wp-login.php for unauthorized requests
 * **Debug Mode**: Built-in debugging capabilities for troubleshooting
 * **Easy Configuration**: Simple settings page in WordPress admin
 
