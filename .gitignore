@@ -1,0 +1,21 @@
+# Composer dependencies (dev only)
+/vendor/
+
+# Composer files (not needed in distribution)
+composer.lock
+
+# IDE files
+/.idea/
+*.iml
+
+# macOS
+.DS_Store
+
+# Build/distribution artifacts
+/build/
+/dist/
+*.zip
+
+# Logs
+*.log
+debug.log

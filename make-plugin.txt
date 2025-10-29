@@ -1,0 +1,8 @@
+# This will create wp-hidelogin-saml-2.1.0.zip ready for WordPress installation.
+
+mkdir -p build/wp-hidelogin-saml && \
+cp hidelogin.php LICENSE README.md readme.txt build/wp-hidelogin-saml/ && \
+cd build && zip -r wp-hidelogin-saml-2.1.0.zip wp-hidelogin-saml/ && \
+cd .. && mv build/wp-hidelogin-saml-2.1.0.zip . && rm -rf build
+
+
