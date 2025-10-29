@@ -3,7 +3,7 @@
  * Plugin Name: Hide WP Login SAML
  * Plugin URI: https://github.com/m3puckett/wp-hidelogin-saml
  * Description: Hides the WordPress login page with a custom URL while preserving SAML authentication functionality
- * Version: 2.1.3
+ * Version: 2.1.4
  * Author: Mark Puckett
  * Author URI: https://github.com/m3puckett
  * License: GPL v3
@@ -23,7 +23,7 @@ if (!defined('ABSPATH')) {
 }
 
 // Plugin constants
-define('SHL_VERSION', '2.1.3');
+define('SHL_VERSION', '2.1.4');
 define('SHL_PLUGIN_FILE', __FILE__);
 define('SHL_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('SHL_DEBUG', true); // Set to true for debugging
@@ -610,7 +610,8 @@ class SAML_Hide_Login {
             </table>
 
             <?php if (SHL_DEBUG): ?>
-            <p class="description">Debug mode is enabled. Check your error logs for detailed information about requests.</p>
+            <p class="description">Debug mode is enabled. Check your error logs for detailed information about requests,
+                but be sure your WP_DEBUG config settings are enabled in wp-config.php as well.</p>
             <?php endif; ?>
 
             <hr>
