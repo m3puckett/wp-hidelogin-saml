@@ -4,14 +4,9 @@ A WordPress plugin that hides the default WordPress login page with a custom URL
 
 ## Description
 
-I had an issue where an open source version of the hide login plugin and the WP SAML Auth plugin did not get along.  
-So I wrote another hide login plugin that actually works.  The hide login code works differently than the original, and 
-it still preserves the same idea of obscuring the login page.  This keeps unwanted bots from attempting brute force
-logins as since can't find the login page.
+I had an issue where an open source version of the hide login plugin and the WP SAML Auth plugin did not get along.  So I wrote another hide login plugin that actually works.  The hide login code works differently than the original, and it still preserves the same idea of obscuring the login page.  This keeps unwanted bots from attempting brute force logins since they can't find the login page.
 
-It works pretty simple.  If you check the Auto-Redirect to SAML option, it will redirect users to the SAML SSO page. 
-On that page hosted by the WP SAML Auth plugin, you can configure it to have a button to press to login - or you can 
-configure it to redirect to the SSO login automatically.  
+It works pretty simple.  If you check the Auto-Redirect to SAML option, it will redirect users to the SAML SSO page. On that page hosted by the WP SAML Auth plugin, you can configure it to have a button to press to login - or you can configure it to redirect to the SSO login automatically.  
 
 If you don't check the Auto-Redirect to SAML option, it will default to the basic Wordpress authentication page.  It works
 fine if you don't have SAML authentication at all.

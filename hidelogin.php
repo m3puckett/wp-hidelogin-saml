@@ -3,7 +3,7 @@
  * Plugin Name: Hide WP Login SAML
  * Plugin URI: https://github.com/m3puckett/wp-hidelogin-saml
  * Description: Hides the WordPress login page with a custom URL while preserving SAML authentication functionality
- * Version: 2.1.1
+ * Version: 2.1.2
  * Author: Mark Puckett
  * Author URI: https://github.com/m3puckett
  * License: GPL v3
@@ -23,25 +23,29 @@ if (!defined('ABSPATH')) {
 }
 
 // Plugin constants
-define('SHL_VERSION', '2.1.1');
+define('SHL_VERSION', '2.1.2');
 define('SHL_PLUGIN_FILE', __FILE__);
 define('SHL_PLUGIN_DIR', plugin_dir_path(__FILE__));
-define('SHL_DEBUG', false); // Set to true for debugging
+define('SHL_DEBUG', true); // Set to true for debugging
 
-// Enable automatic updates from GitHub
-require_once SHL_PLUGIN_DIR . 'vendor/autoload.php';
-if (class_exists('YahnisElsts\PluginUpdateChecker\v5\PucFactory')) {
-    $updateChecker = YahnisElsts\PluginUpdateChecker\v5\PucFactory::buildUpdateChecker(
-        'https://github.com/m3puckett/wp-hidelogin-saml/',
-        __FILE__,
-        'wp-hidelogin-saml'
-    );
+// Enable automatic updates from GitHub (if vendor directory exists)
+$autoload_file = SHL_PLUGIN_DIR . 'vendor/autoload.php';
+if (file_exists($autoload_file)) {
+    require_once $autoload_file;
 
-    // Set the branch to check for updates
-    $updateChecker->setBranch('main');
+    if (class_exists('YahnisElsts\PluginUpdateChecker\v5\PucFactory')) {
+        $updateChecker = YahnisElsts\PluginUpdateChecker\v5\PucFactory::buildUpdateChecker(
+            'https://github.com/m3puckett/wp-hidelogin-saml/',
+            __FILE__,
+            'wp-hidelogin-saml'
+        );
 
-    // Optional: Enable release assets (if you want to use pre-built ZIPs)
-    // $updateChecker->getVcsApi()->enableReleaseAssets();
+        // Set the branch to check for updates
+        $updateChecker->setBranch('main');
+
+        // Optional: Enable release assets (if you want to use pre-built ZIPs)
+        // $updateChecker->getVcsApi()->enableReleaseAssets();
+    }
 }
 
 /**
@@ -260,8 +264,12 @@ class SAML_Hide_Login {
 
             // Check if enabled (should be integer 1 for enabled, 0 for disabled)
             $auto_redirect_enabled = ($auto_redirect === 1 || $auto_redirect === '1');
+            $is_logged_in = is_user_logged_in();
+            $is_saml = $this->is_saml_request();
 
-            if ($auto_redirect_enabled && !is_user_logged_in() && !$this->is_saml_request()) {
+            shl_log('Redirect conditions - Enabled: ' . ($auto_redirect_enabled ? 'YES' : 'NO') . ', Logged in: ' . ($is_logged_in ? 'YES' : 'NO') . ', SAML request: ' . ($is_saml ? 'YES' : 'NO'));
+
+            if ($auto_redirect_enabled && !$is_logged_in && !$is_saml) {
                 shl_log('Auto-redirect to SAML enabled - redirecting to SAML SSO');
                 $saml_sso_url = site_url('wp-login.php?saml_sso');
 
