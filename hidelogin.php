@@ -1,9 +1,9 @@
 <?php
 /**
  * Plugin Name: Hide WP Login SAML
- * Plugin URI: https://github.com/m3puckett/wp-saml-hidelogin-fix
+ * Plugin URI: https://github.com/m3puckett/wp-hidelogin-saml
  * Description: Hides the WordPress login page with a custom URL while preserving SAML authentication functionality
- * Version: 2.1.0
+ * Version: 2.1.1
  * Author: Mark Puckett
  * Author URI: https://github.com/m3puckett
  * License: GPL v3
@@ -23,11 +23,26 @@ if (!defined('ABSPATH')) {
 }
 
 // Plugin constants
-define('SHL_VERSION', '2.1.0');
+define('SHL_VERSION', '2.1.1');
 define('SHL_PLUGIN_FILE', __FILE__);
 define('SHL_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('SHL_DEBUG', false); // Set to true for debugging
 
+// Enable automatic updates from GitHub
+require_once SHL_PLUGIN_DIR . 'vendor/autoload.php';
+if (class_exists('YahnisElsts\PluginUpdateChecker\v5\PucFactory')) {
+    $updateChecker = YahnisElsts\PluginUpdateChecker\v5\PucFactory::buildUpdateChecker(
+        'https://github.com/m3puckett/wp-hidelogin-saml/',
+        __FILE__,
+        'wp-hidelogin-saml'
+    );
+
+    // Set the branch to check for updates
+    $updateChecker->setBranch('main');
+
+    // Optional: Enable release assets (if you want to use pre-built ZIPs)
+    // $updateChecker->getVcsApi()->enableReleaseAssets();
+}
 
 /**
  * Debug logging function
@@ -415,8 +430,8 @@ class SAML_Hide_Login {
      */
     public function admin_menu() {
         add_options_page(
-            'SAML Hide Login',
-            'SAML Hide Login',
+            'Hide Login',
+            'Hide Login',
             'manage_options',
             'saml-hide-login',
             array($this, 'settings_page')
@@ -578,6 +593,24 @@ class SAML_Hide_Login {
             <?php if (SHL_DEBUG): ?>
             <p class="description">Debug mode is enabled. Check your error logs for detailed information about requests.</p>
             <?php endif; ?>
+
+            <hr>
+
+            <h2>About</h2>
+            <div style="background: #f9f9f9; border: 1px solid #ddd; border-radius: 4px; padding: 15px; margin-top: 15px;">
+                <p style="margin: 0 0 10px 0;">
+                    <strong>Plugin Version:</strong> <?php echo esc_html(SHL_VERSION); ?>
+                </p>
+                <p style="margin: 0 0 10px 0;">
+                    <strong>Author:</strong> Mark Puckett - <a href="https://raxis.com/">Raxis</a>
+                </p>
+                <p style="margin: 0;">
+                    <strong>GitHub:</strong>
+                    <a href="https://github.com/m3puckett/wp-hidelogin-saml" target="_blank" rel="noopener noreferrer">
+                        https://github.com/m3puckett/wp-hidelogin-saml
+                    </a>
+                </p>
+            </div>
         </div>
         <?php
     }

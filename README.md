@@ -67,7 +67,7 @@ The plugin intercepts requests to the WordPress login page and:
 
 ```bash
 cd /path/to/wordpress/wp-content/plugins/
-wget https://github.com/m3puckett/wp-saml-hidelogin-fix/archive/refs/heads/main.zip
+wget https://github.com/m3puckett/wp-hidelogin-saml/archive/refs/heads/main.zip
 unzip main.zip
 mv wp-saml-hidelogin-fix-main wp-hidelogin-saml
 ```
@@ -124,6 +124,36 @@ The following SAML authentication URLs will always work, regardless of your cust
 - **SAML SLS (Single Logout Service)**: `https://yoursite.com/wp-login.php?saml_sls`
 
 Configure these URLs in your SAML Identity Provider settings.
+
+## Automatic Updates
+
+This plugin supports automatic updates from GitHub! Once installed, WordPress will automatically check for new versions and notify you when updates are available.
+
+### How It Works
+
+The plugin uses the [Plugin Update Checker](https://github.com/YahnisElsts/plugin-update-checker) library to check for updates from the GitHub repository. When you create a new release on GitHub:
+
+1. Tag the release with a version number (e.g., `v2.2.0`)
+2. WordPress will detect the new version within 12 hours
+3. Users will see an update notification in their WordPress admin
+4. Users can update with one click from the Plugins page
+
+### For Plugin Developers
+
+To release a new version:
+
+1. Update the version number in `hidelogin.php` (line 6)
+2. Update version in `readme.txt` (Stable tag)
+3. Update the CHANGELOG in both README files
+4. Commit and push changes
+5. Create a new release on GitHub:
+   ```bash
+   git tag v2.2.0
+   git push origin v2.2.0
+   ```
+6. Create a GitHub release with the tag and upload the ZIP file
+
+WordPress will automatically detect the new release and offer updates to users.
 
 ## Usage Examples
 
@@ -254,8 +284,8 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 For bugs, feature requests, or questions:
 
-- GitHub Issues: https://github.com/m3puckett/wp-saml-hidelogin-fix/issues
-- GitHub Repository: https://github.com/m3puckett/wp-saml-hidelogin-fix
+- GitHub Issues: https://github.com/m3puckett/wp-hidelogin-saml/issues
+- GitHub Repository: https://github.com/m3puckett/wp-hidelogin-saml
 
 ## License
 

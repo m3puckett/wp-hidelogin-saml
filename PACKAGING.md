@@ -31,6 +31,9 @@ wp-hidelogin-saml/
 2. **LICENSE** - The GNU General Public License v3.0 text
 3. **README.md** - Comprehensive documentation for GitHub and general use
 4. **readme.txt** - WordPress.org standard format readme
+5. **vendor/** - Production dependencies (Plugin Update Checker library)
+   - Must include `vendor/yahnis-elsts/plugin-update-checker/`
+   - Must exclude `vendor/php-stubs/` (dev dependency only)
 
 ### Files to Exclude
 
@@ -42,14 +45,18 @@ Do NOT include the following in the distribution ZIP:
 - `.claude/` - Claude Code configuration
 - `*.iml` - IntelliJ IDEA project files
 - `PACKAGING.md` - This packaging guide
-- `composer.json` - Composer configuration (dev dependencies only)
-- `composer.lock` - Composer lock file
-- `vendor/` - Composer dependencies (WordPress stubs for IDE - dev only)
+- `composer.json` - Excluded from final ZIP (used during build only)
+- `composer.lock` - Not needed in distribution
+- `vendor/php-stubs/` - WordPress stubs for IDE only (dev dependency)
 - `node_modules/` - If any Node.js dependencies exist
 - `.DS_Store` - macOS system files
 - `Thumbs.db` - Windows thumbnail cache
 
-**Note:** The `vendor/` directory contains WordPress function stubs for IDE autocomplete and is NOT needed for the plugin to run. The plugin only requires the files listed in "Required Files" above.
+**Important:** The `vendor/` directory contains TWO types of dependencies:
+- **Production:** `vendor/yahnis-elsts/plugin-update-checker/` - MUST be included (enables automatic updates)
+- **Development:** `vendor/php-stubs/wordpress-stubs/` - MUST be excluded (IDE autocomplete only)
+
+The packaging script automatically handles this by running `composer install --no-dev`.
 
 ## Automated Packaging (Recommended)
 
@@ -78,6 +85,14 @@ cp hidelogin.php "$BUILD_DIR/$PLUGIN_SLUG/"
 cp LICENSE "$BUILD_DIR/$PLUGIN_SLUG/"
 cp README.md "$BUILD_DIR/$PLUGIN_SLUG/"
 cp readme.txt "$BUILD_DIR/$PLUGIN_SLUG/"
+cp composer.json "$BUILD_DIR/$PLUGIN_SLUG/"
+
+# Install production dependencies (excludes dev dependencies)
+echo "Installing production dependencies..."
+cd "$BUILD_DIR/$PLUGIN_SLUG"
+composer install --no-dev --no-interaction --optimize-autoloader
+rm composer.json  # Remove composer.json from final package
+cd ../..
 
 # Create dist directory
 mkdir -p "$DIST_DIR"
@@ -290,7 +305,7 @@ git tag -a v2.1.0 -m "Version 2.1.0"
 git push origin v2.1.0
 ```
 
-2. Go to GitHub repository: https://github.com/m3puckett/wp-saml-hidelogin-fix
+2. Go to GitHub repository: https://github.com/m3puckett/wp-hidelogin-saml
 3. Click "Releases" > "Draft a new release"
 4. Select the tag (v2.1.0)
 5. Add release title: "Hide WP Login SAML-Aware v2.1.0"
@@ -363,5 +378,5 @@ php -l hidelogin.php
 ## Support
 
 For questions about packaging or distribution:
-- GitHub Issues: https://github.com/m3puckett/wp-saml-hidelogin-fix/issues
+- GitHub Issues: https://github.com/m3puckett/wp-hidelogin-saml/issues
 - WordPress Plugin Handbook: https://developer.wordpress.org/plugins/

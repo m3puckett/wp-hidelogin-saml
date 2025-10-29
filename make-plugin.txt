@@ -1,8 +1,21 @@
-# This will create wp-hidelogin-saml-2.1.0.zip ready for WordPress installation.
+# This will create wp-hidelogin-saml-2.1.1.zip ready for WordPress installation.
 
-mkdir -p build/wp-hidelogin-saml && \
-cp hidelogin.php LICENSE README.md readme.txt build/wp-hidelogin-saml/ && \
-cd build && zip -r wp-hidelogin-saml-2.1.0.zip wp-hidelogin-saml/ && \
-cd .. && mv build/wp-hidelogin-saml-2.1.0.zip . && rm -rf build
+# Create build directory
+mkdir -p build/wp-hidelogin-saml
+
+# Copy plugin files
+cp hidelogin.php LICENSE README.md readme.txt composer.json build/wp-hidelogin-saml/
+
+# Install production dependencies only (excludes dev dependencies like wordpress-stubs)
+cd build/wp-hidelogin-saml && composer install --no-dev --no-interaction --optimize-autoloader && cd ../..
+
+# Create ZIP (excluding composer files from final package)
+cd build/wp-hidelogin-saml && rm composer.json composer.lock && cd ..
+zip -r wp-hidelogin-saml-2.1.1.zip wp-hidelogin-saml/
+
+# Move ZIP to root and cleanup
+cd .. && mv build/wp-hidelogin-saml-2.1.1.zip . && rm -rf build
+
+echo "✓ Package created: wp-hidelogin-saml-2.1.1.zip"
 
 

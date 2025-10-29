@@ -4,7 +4,7 @@ Tags: login, security, saml, authentication, hide login
 Requires at least: 5.0
 Tested up to: 6.4
 Requires PHP: 7.4
-Stable tag: 2.1.0
+Stable tag: 2.1.1
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 
@@ -149,7 +149,7 @@ Major update with improved SAML compatibility and settings interface. Backup you
 == Support ==
 
 For bugs, feature requests, or questions, please visit:
-https://github.com/m3puckett/wp-saml-hidelogin-fix/issues
+https://github.com/m3puckett/wp-hidelogin-saml/issues
 
 == License ==
 
