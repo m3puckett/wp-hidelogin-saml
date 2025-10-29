@@ -42,6 +42,7 @@ The plugin intercepts requests to the WordPress login page and:
 ### Method 1: WordPress Admin Panel (Recommended)
 
 1. Download the latest release as a ZIP file
+    1. https://github.com/m3puckett/wp-hidelogin-saml/releases/download/v2.1.4/wp-hidelogin-saml-2.1.4.zip
 2. Log in to your WordPress admin panel
 3. Navigate to **Plugins > Add New**
 4. Click **Upload Plugin** at the top of the page
