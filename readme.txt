@@ -2,7 +2,7 @@
 Contributors: m3puckett
 Tags: login, security, saml, authentication, hide login
 Requires at least: 5.0
-Tested up to: 6.4
+Tested up to: 6.8.3
 Requires PHP: 7.4
 Stable tag: 2.1.4
 License: GPLv3
