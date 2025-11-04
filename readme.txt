@@ -4,7 +4,7 @@ Tags: login, security, saml, authentication, hide login
 Requires at least: 5.0
 Tested up to: 6.8.3
 Requires PHP: 7.4
-Stable tag: 3.0.0
+Stable tag: 3.0.1
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 
@@ -118,6 +118,11 @@ Go to **Settings > SAML Hide Login**, check the **Enable automatic redirect to S
 
 == Changelog ==
 
+= 3.0.1 =
+* Fixed SAML redirect loop that prevented login after 3.0.0 upgrade
+* login_url filter now checks current REQUEST context to detect when we're in a SAML authentication flow
+* Prevents URL rewriting during SAML processing while still protecting the login page from direct access
+
 = 3.0.0 =
 * BREAKING: Major architectural simplification for better maintainability and performance
 * Plugin now only intercepts basic login URL; WordPress handles logout/password resets natively
@@ -167,6 +172,9 @@ Go to **Settings > SAML Hide Login**, check the **Enable automatic redirect to S
 * Initial release
 
 == Upgrade Notice ==
+
+= 3.0.1 =
+Critical bug fix for SAML redirect loop in 3.0.0. If you're unable to login after upgrading to 3.0.0, update to 3.0.1 immediately.
 
 = 3.0.0 =
 Major architectural simplification. Logout and password reset URLs now use native WordPress URLs (wp-login.php with action parameters) instead of custom slug. Brute force protection unchanged - wp-login.php still blocked for basic login. All features work the same, just simplified internally.

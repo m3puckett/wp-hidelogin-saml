@@ -3,7 +3,7 @@
  * Plugin Name: Hide WP Login SAML
  * Plugin URI: https://github.com/m3puckett/wp-hidelogin-saml
  * Description: Hides the WordPress login page with a custom URL while preserving SAML authentication functionality
- * Version: 3.0.0
+ * Version: 3.0.1
  * Author: Mark Puckett
  * Author URI: https://github.com/m3puckett
  * License: GPL v3
@@ -142,6 +142,14 @@ function shl_log($message) {
  * (v3.0: Simplified to only handle basic login, not logout/password reset)
  */
 function shl_filter_login_url($login_url, $redirect, $force_reauth) {
+    // DON'T rewrite if we're currently processing a SAML request
+    // This prevents redirect loops during SAML authentication flow
+    if (isset($_REQUEST['saml_acs']) || isset($_REQUEST['saml_sso']) ||
+        isset($_REQUEST['saml_sls']) || isset($_REQUEST['SAMLResponse']) ||
+        isset($_REQUEST['SAMLRequest'])) {
+        return $login_url;
+    }
+
     // Only rewrite if it's wp-login.php
     if (strpos($login_url, 'wp-login.php') === false) {
         return $login_url;
@@ -530,6 +538,15 @@ class SAML_Hide_Login {
      * (v3.0: Simplified to only handle basic login, not logout/password reset)
      */
     public function login_url($login_url, $redirect, $force_reauth) {
+        // DON'T rewrite if we're currently processing a SAML request
+        // This prevents redirect loops during SAML authentication flow
+        if (isset($_REQUEST['saml_acs']) || isset($_REQUEST['saml_sso']) ||
+            isset($_REQUEST['saml_sls']) || isset($_REQUEST['SAMLResponse']) ||
+            isset($_REQUEST['SAMLRequest'])) {
+            shl_log('Not filtering login URL - currently in SAML request: ' . $login_url);
+            return $login_url;
+        }
+
         // Only rewrite if it's wp-login.php
         if (strpos($login_url, 'wp-login.php') === false) {
             return $login_url;
