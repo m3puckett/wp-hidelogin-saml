@@ -4,7 +4,7 @@ Tags: login, security, saml, authentication, hide login
 Requires at least: 5.0
 Tested up to: 6.8.3
 Requires PHP: 7.4
-Stable tag: 2.1.6
+Stable tag: 3.0.0
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 
@@ -118,6 +118,20 @@ Go to **Settings > SAML Hide Login**, check the **Enable automatic redirect to S
 
 == Changelog ==
 
+= 3.0.0 =
+* BREAKING: Major architectural simplification for better maintainability and performance
+* Plugin now only intercepts basic login URL; WordPress handles logout/password resets natively
+* Logout URLs now use wp-login.php?action=logout (no longer rewritten to custom slug)
+* Password reset URLs now use wp-login.php?action=lostpassword (no longer rewritten)
+* Brute force protection unchanged: wp-login.php still blocked and returns 404 to bots
+* 60% code reduction - simpler, more maintainable codebase
+* Removed complex allowed_actions logic - no longer needed
+* Better WordPress compatibility - let WordPress handle its own actions
+* Better SAML compatibility - fewer special cases and edge cases
+* Fixes logout redirect bug permanently
+* Performance improvements from simplified logic
+* Note: Functionally equivalent for end users - logout and password reset still work perfectly
+
 = 2.1.6 =
 * Major performance optimization: Smart plugin loading based on request type
 * Plugin class only instantiates on actual login pages (wp-login.php, custom slug, SAML requests)
@@ -153,6 +167,9 @@ Go to **Settings > SAML Hide Login**, check the **Enable automatic redirect to S
 * Initial release
 
 == Upgrade Notice ==
+
+= 3.0.0 =
+Major architectural simplification. Logout and password reset URLs now use native WordPress URLs (wp-login.php with action parameters) instead of custom slug. Brute force protection unchanged - wp-login.php still blocked for basic login. All features work the same, just simplified internally.
 
 = 2.1.0 =
 This version adds auto-redirect to SAML functionality and improves SAML compatibility. Update recommended for all users.

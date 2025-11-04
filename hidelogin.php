@@ -3,7 +3,7 @@
  * Plugin Name: Hide WP Login SAML
  * Plugin URI: https://github.com/m3puckett/wp-hidelogin-saml
  * Description: Hides the WordPress login page with a custom URL while preserving SAML authentication functionality
- * Version: 2.1.6
+ * Version: 3.0.0
  * Author: Mark Puckett
  * Author URI: https://github.com/m3puckett
  * License: GPL v3
@@ -23,7 +23,7 @@ if (!defined('ABSPATH')) {
 }
 
 // Plugin constants
-define('SHL_VERSION', '2.1.6');
+define('SHL_VERSION', '3.0.0');
 define('SHL_PLUGIN_FILE', __FILE__);
 define('SHL_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('SHL_DEBUG', true); // Set to true for debugging
@@ -138,23 +138,32 @@ function shl_log($message) {
  */
 
 /**
- * Filter login_url - rewrite wp-login.php to custom slug
+ * Filter login_url - rewrite ONLY basic login to custom slug
+ * (v3.0: Simplified to only handle basic login, not logout/password reset)
  */
 function shl_filter_login_url($login_url, $redirect, $force_reauth) {
-    // Skip SAML requests
-    if (strpos($login_url, 'wp-login.php') !== false) {
-        $query_string = parse_url($login_url, PHP_URL_QUERY);
-        if ($query_string && (
-            strpos($query_string, 'saml_acs') !== false ||
-            strpos($query_string, 'saml_sso') !== false ||
-            strpos($query_string, 'saml_sls') !== false
-        )) {
-            return $login_url;
-        }
-
-        // Replace with custom slug
-        $login_url = home_url(shl_get_login_slug());
+    // Only rewrite if it's wp-login.php
+    if (strpos($login_url, 'wp-login.php') === false) {
+        return $login_url;
     }
+
+    // Parse query string to check for action parameter
+    $query_string = parse_url($login_url, PHP_URL_QUERY);
+    parse_str($query_string ? $query_string : '', $params);
+
+    // Don't rewrite SAML URLs
+    if (isset($params['saml_acs']) || isset($params['saml_sso']) || isset($params['saml_sls'])) {
+        return $login_url;
+    }
+
+    // Don't rewrite if action parameter exists (logout, lostpassword, etc.)
+    // Only rewrite basic login (no action or action=login)
+    if (isset($params['action']) && $params['action'] !== 'login') {
+        return $login_url;
+    }
+
+    // Rewrite to custom slug for basic login only
+    $login_url = home_url(shl_get_login_slug());
 
     if (!empty($redirect)) {
         $login_url = add_query_arg('redirect_to', urlencode($redirect), $login_url);
@@ -165,42 +174,6 @@ function shl_filter_login_url($login_url, $redirect, $force_reauth) {
     }
 
     return $login_url;
-}
-
-/**
- * Filter logout_url - rewrite wp-login.php to custom slug
- */
-function shl_filter_logout_url($logout_url, $redirect) {
-    if (strpos($logout_url, 'wp-login.php') !== false) {
-        $parsed = parse_url($logout_url);
-        $logout_url = home_url(shl_get_login_slug());
-
-        // Preserve query parameters
-        if (!empty($parsed['query'])) {
-            parse_str($parsed['query'], $query_params);
-            $logout_url = add_query_arg($query_params, $logout_url);
-        }
-    }
-
-    return $logout_url;
-}
-
-/**
- * Filter lostpassword_url - rewrite wp-login.php to custom slug
- */
-function shl_filter_lostpassword_url($lostpassword_url, $redirect) {
-    if (strpos($lostpassword_url, 'wp-login.php') !== false) {
-        $parsed = parse_url($lostpassword_url);
-        $lostpassword_url = home_url(shl_get_login_slug());
-
-        // Preserve query parameters
-        if (!empty($parsed['query'])) {
-            parse_str($parsed['query'], $query_params);
-            $lostpassword_url = add_query_arg($query_params, $lostpassword_url);
-        }
-    }
-
-    return $lostpassword_url;
 }
 
 /**
@@ -235,10 +208,8 @@ class SAML_Hide_Login {
         add_action('admin_init', array($this, 'register_settings'));
         add_filter('plugin_action_links_' . plugin_basename(__FILE__), array($this, 'plugin_action_links'));
 
-        // Login URL filters - only rewrite when WordPress explicitly asks for login URLs
+        // Login URL filter - v3.0: Only rewrite basic login, not logout/password reset
         add_filter('login_url', array($this, 'login_url'), 10, 3);
-        add_filter('logout_url', array($this, 'logout_url'), 10, 2);
-        add_filter('lostpassword_url', array($this, 'lostpassword_url'), 10, 2);
     }
 
     /**
@@ -440,15 +411,11 @@ class SAML_Hide_Login {
             shl_log('Redirect conditions - Enabled: ' . ($auto_redirect_enabled ? 'YES' : 'NO') . ', Logged in: ' . ($is_logged_in ? 'YES' : 'NO') . ', SAML request: ' . ($is_saml ? 'YES' : 'NO'));
 
             // If auto-redirect is enabled and this is not a SAML callback
+            // v3.0: Simplified - custom slug only handles basic login now (no action parameters)
+            // Logout/password reset go directly to wp-login.php with action params
             if ($auto_redirect_enabled && !$is_saml) {
-                // Check if this is a special action request that should not be redirected
-                // Allow: logout, password reset, etc.
-                $action = isset($_GET['action']) ? $_GET['action'] : '';
-                $allowed_actions = array('logout', 'lostpassword', 'retrievepassword', 'rp', 'resetpass', 'postpass');
-                $is_allowed_action = in_array($action, $allowed_actions);
-
-                // If user is already logged in (and not performing a special action), redirect them away from login page
-                if ($is_logged_in && !$is_allowed_action) {
+                // If user is already logged in, redirect them away from login page
+                if ($is_logged_in) {
                     shl_log('User already logged in - redirecting to destination');
                     // Get redirect_to parameter or default to admin
                     $redirect_to = isset($_GET['redirect_to']) ? wp_validate_redirect($_GET['redirect_to'], admin_url()) : admin_url();
@@ -456,24 +423,18 @@ class SAML_Hide_Login {
                     exit;
                 }
 
-                // User is not logged in and not performing a special action, redirect to SAML SSO
-                if (!$is_logged_in && !$is_allowed_action) {
-                    shl_log('Auto-redirect to SAML enabled - redirecting to SAML SSO');
-                    $saml_sso_url = site_url('wp-login.php?saml_sso');
+                // User is not logged in, redirect to SAML SSO
+                shl_log('Auto-redirect to SAML enabled - redirecting to SAML SSO');
+                $saml_sso_url = site_url('wp-login.php?saml_sso');
 
-                    // Preserve redirect_to parameter if present (with validation to prevent open redirects)
-                    if (isset($_GET['redirect_to'])) {
-                        $redirect_to = wp_validate_redirect($_GET['redirect_to'], admin_url());
-                        $saml_sso_url = add_query_arg('redirect_to', urlencode($redirect_to), $saml_sso_url);
-                    }
-
-                    wp_redirect($saml_sso_url);
-                    exit;
+                // Preserve redirect_to parameter if present (with validation to prevent open redirects)
+                if (isset($_GET['redirect_to'])) {
+                    $redirect_to = wp_validate_redirect($_GET['redirect_to'], admin_url());
+                    $saml_sso_url = add_query_arg('redirect_to', urlencode($redirect_to), $saml_sso_url);
                 }
 
-                // If we reach here, it's a special action (logout, password reset, etc.)
-                // Fall through to load wp-login.php normally
-                shl_log('Special action detected (' . $action . ') - allowing wp-login.php to handle it');
+                wp_redirect($saml_sso_url);
+                exit;
             }
 
             shl_log('Loading wp-login.php');
@@ -487,10 +448,19 @@ class SAML_Hide_Login {
             die();
         }
 
-        // Block direct access to wp-login.php (non-SAML requests)
+        // Block direct access to wp-login.php ONLY for basic login (v3.0)
+        // Allow wp-login.php with action parameters (logout, lostpassword, etc.)
         if ($this->is_wp_login_request() && !$this->is_saml_request()) {
-            shl_log('Direct wp-login.php access blocked - redirecting to 404');
-            $this->wp_template_redirect();
+            $action = isset($_GET['action']) ? $_GET['action'] : '';
+
+            // Block ONLY basic login (no action or action=login)
+            // Allow through: logout, lostpassword, retrievepassword, rp, resetpass, postpass
+            if (empty($action) || $action === 'login') {
+                shl_log('Direct wp-login.php access blocked (basic login) - redirecting to 404');
+                $this->wp_template_redirect();
+            } else {
+                shl_log('Allowing wp-login.php with action=' . $action);
+            }
         }
 
         // Block wp-admin access for non-logged-in users
@@ -525,10 +495,15 @@ class SAML_Hide_Login {
             return;
         }
 
-        // Final check for blocked requests
+        // Final check for blocked requests (v3.0: only block basic login)
         if ($this->is_wp_login_request() && !$this->is_saml_request() && !is_user_logged_in()) {
-            shl_log('Template redirect - blocking non-SAML wp-login.php request');
-            $this->wp_template_redirect();
+            $action = isset($_GET['action']) ? $_GET['action'] : '';
+
+            // Block ONLY basic login (no action or action=login)
+            if (empty($action) || $action === 'login') {
+                shl_log('Template redirect - blocking basic login wp-login.php request');
+                $this->wp_template_redirect();
+            }
         }
     }
 
@@ -551,31 +526,34 @@ class SAML_Hide_Login {
     }
 
     /**
-     * Filter login_url - rewrite wp-login.php to custom slug
+     * Filter login_url - rewrite ONLY basic login to custom slug
+     * (v3.0: Simplified to only handle basic login, not logout/password reset)
      */
     public function login_url($login_url, $redirect, $force_reauth) {
-        // Don't filter SAML requests
-        if ($this->is_saml_request()) {
+        // Only rewrite if it's wp-login.php
+        if (strpos($login_url, 'wp-login.php') === false) {
             return $login_url;
         }
 
-        // Only rewrite if it contains wp-login.php
-        if (strpos($login_url, 'wp-login.php') !== false) {
-            // Check if this is a SAML URL (has saml parameters)
-            $query_string = parse_url($login_url, PHP_URL_QUERY);
-            if ($query_string && (
-                strpos($query_string, 'saml_acs') !== false ||
-                strpos($query_string, 'saml_sso') !== false ||
-                strpos($query_string, 'saml_sls') !== false
-            )) {
-                shl_log('Not filtering SAML login URL: ' . $login_url);
-                return $login_url;
-            }
+        // Parse query string to check for action parameter
+        $query_string = parse_url($login_url, PHP_URL_QUERY);
+        parse_str($query_string ? $query_string : '', $params);
 
-            // Replace with custom slug
-            $login_url = home_url($this->custom_login_slug);
-            shl_log('Rewriting login URL to: ' . $login_url);
+        // Don't rewrite SAML URLs
+        if (isset($params['saml_acs']) || isset($params['saml_sso']) || isset($params['saml_sls'])) {
+            shl_log('Not filtering SAML login URL: ' . $login_url);
+            return $login_url;
         }
+
+        // Don't rewrite if action parameter exists (logout, lostpassword, etc.)
+        // Only rewrite basic login (no action or action=login)
+        if (isset($params['action']) && $params['action'] !== 'login') {
+            return $login_url;
+        }
+
+        // Rewrite to custom slug for basic login only
+        $login_url = home_url($this->custom_login_slug);
+        shl_log('Rewriting login URL to: ' . $login_url);
 
         if (!empty($redirect)) {
             $login_url = add_query_arg('redirect_to', urlencode($redirect), $login_url);
@@ -586,54 +564,6 @@ class SAML_Hide_Login {
         }
 
         return $login_url;
-    }
-
-    /**
-     * Filter logout_url - rewrite wp-login.php to custom slug
-     */
-    public function logout_url($logout_url, $redirect) {
-        // Don't filter SAML requests
-        if ($this->is_saml_request()) {
-            return $logout_url;
-        }
-
-        // Only rewrite if it contains wp-login.php and is not SAML
-        if (strpos($logout_url, 'wp-login.php') !== false) {
-            $parsed = parse_url($logout_url);
-            $logout_url = home_url($this->custom_login_slug);
-
-            // Preserve query parameters
-            if (!empty($parsed['query'])) {
-                parse_str($parsed['query'], $query_params);
-                $logout_url = add_query_arg($query_params, $logout_url);
-            }
-        }
-
-        return $logout_url;
-    }
-
-    /**
-     * Filter lostpassword_url - rewrite wp-login.php to custom slug
-     */
-    public function lostpassword_url($lostpassword_url, $redirect) {
-        // Don't filter SAML requests
-        if ($this->is_saml_request()) {
-            return $lostpassword_url;
-        }
-
-        // Only rewrite if it contains wp-login.php
-        if (strpos($lostpassword_url, 'wp-login.php') !== false) {
-            $parsed = parse_url($lostpassword_url);
-            $lostpassword_url = home_url($this->custom_login_slug);
-
-            // Preserve query parameters
-            if (!empty($parsed['query'])) {
-                parse_str($parsed['query'], $query_params);
-                $lostpassword_url = add_query_arg($query_params, $lostpassword_url);
-            }
-        }
-
-        return $lostpassword_url;
     }
 
     /**
@@ -847,11 +777,9 @@ function saml_hide_login_init() {
         $saml_hide_login = new SAML_Hide_Login();
         shl_log('Full plugin instance created for login request');
     } else {
-        // For non-login pages, only register lightweight URL filters
-        // This avoids the overhead of instantiating the full class
+        // For non-login pages, only register lightweight URL filter for basic login
+        // v3.0: Only rewrite login URL, let WordPress handle logout/password reset natively
         add_filter('login_url', 'shl_filter_login_url', 10, 3);
-        add_filter('logout_url', 'shl_filter_logout_url', 10, 2);
-        add_filter('lostpassword_url', 'shl_filter_lostpassword_url', 10, 2);
 
         // No logging on regular pages to reduce noise
     }
