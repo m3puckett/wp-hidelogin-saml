@@ -3,7 +3,7 @@
  * Plugin Name: Hide WP Login SAML
  * Plugin URI: https://github.com/m3puckett/wp-hidelogin-saml
  * Description: Hides the WordPress login page with a custom URL while preserving SAML authentication functionality
- * Version: 2.1.4
+ * Version: 2.1.5
  * Author: Mark Puckett
  * Author URI: https://github.com/m3puckett
  * License: GPL v3
@@ -23,7 +23,7 @@ if (!defined('ABSPATH')) {
 }
 
 // Plugin constants
-define('SHL_VERSION', '2.1.4');
+define('SHL_VERSION', '2.1.5');
 define('SHL_PLUGIN_FILE', __FILE__);
 define('SHL_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('SHL_DEBUG', true); // Set to true for debugging
@@ -214,11 +214,29 @@ class SAML_Hide_Login {
      * Plugins loaded hook
      */
     public function plugins_loaded() {
+        // PERFORMANCE: Early return if not login-related
+        if (!$this->is_login_related_request()) {
+            return;
+        }
+
         // Prevent caching
         if ($this->is_wp_login_request() || $this->is_custom_login_request()) {
             nocache_headers();
             shl_log('No-cache headers sent for login request');
         }
+    }
+
+    /**
+     * Check if the current request is login-related
+     */
+    private function is_login_related_request() {
+        // Check if it's wp-login.php, custom login slug, default /login, or admin area
+        return (
+            $this->is_wp_login_request() ||
+            $this->is_custom_login_request() ||
+            $this->is_default_login_request() ||
+            (is_admin() && !is_user_logged_in() && !defined('DOING_AJAX'))
+        );
     }
 
     /**
@@ -229,6 +247,12 @@ class SAML_Hide_Login {
 
         // Skip for AJAX, cron, and CLI
         if (defined('DOING_AJAX') || defined('DOING_CRON') || (defined('WP_CLI') && WP_CLI)) {
+            return;
+        }
+
+        // PERFORMANCE: Early return if this is not a login-related request
+        // This prevents the plugin from doing unnecessary work on every page load
+        if (!$this->is_login_related_request()) {
             return;
         }
 
@@ -323,6 +347,11 @@ class SAML_Hide_Login {
      * WP loaded hook
      */
     public function wp_loaded() {
+        // PERFORMANCE: Early return if not login-related
+        if (!$this->is_login_related_request()) {
+            return;
+        }
+
         // Additional checks after WordPress is fully loaded
         if ($this->is_saml_request()) {
             shl_log('SAML request confirmed at wp_loaded');
@@ -333,6 +362,11 @@ class SAML_Hide_Login {
      * Template redirect hook
      */
     public function template_redirect() {
+        // PERFORMANCE: Early return if not login-related
+        if (!$this->is_login_related_request()) {
+            return;
+        }
+
         // Final check for blocked requests
         if ($this->is_wp_login_request() && !$this->is_saml_request() && !is_user_logged_in()) {
             shl_log('Template redirect - blocking non-SAML wp-login.php request');

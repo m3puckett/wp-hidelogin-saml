@@ -4,7 +4,7 @@ Tags: login, security, saml, authentication, hide login
 Requires at least: 5.0
 Tested up to: 6.8.3
 Requires PHP: 7.4
-Stable tag: 2.1.4
+Stable tag: 2.1.5
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 
@@ -117,6 +117,11 @@ Go to **Settings > SAML Hide Login**, check the **Enable automatic redirect to S
 3. Debug information panel
 
 == Changelog ==
+
+= 2.1.5 =
+* Performance improvement: Plugin now only runs on login-related URLs instead of every page request
+* Added early return checks to prevent unnecessary processing on non-login pages
+* Significantly reduces server load on high-traffic sites
 
 = 2.1.3 =
 * Fixed auto-redirect to SAML functionality
