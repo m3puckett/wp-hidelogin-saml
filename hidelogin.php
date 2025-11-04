@@ -3,7 +3,7 @@
  * Plugin Name: Hide WP Login SAML
  * Plugin URI: https://github.com/m3puckett/wp-hidelogin-saml
  * Description: Hides the WordPress login page with a custom URL while preserving SAML authentication functionality
- * Version: 3.0.2
+ * Version: 3.0.3
  * Author: Mark Puckett
  * Author URI: https://github.com/m3puckett
  * License: GPL v3
@@ -23,7 +23,7 @@ if (!defined('ABSPATH')) {
 }
 
 // Plugin constants
-define('SHL_VERSION', '3.0.0');
+define('SHL_VERSION', '3.0.3');
 define('SHL_PLUGIN_FILE', __FILE__);
 define('SHL_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('SHL_DEBUG', true); // Set to true for debugging
@@ -115,10 +115,8 @@ function shl_is_login_related_request() {
         return true;
     }
 
-    // Check for admin area access (needed for Settings page)
-    if (is_admin() && !defined('DOING_AJAX')) {
-        return true;
-    }
+    // DO NOT check for admin area access - let WordPress handle it normally
+    // We only want to intercept direct login page requests, not general wp-admin access
 
     return false;
 }
@@ -355,12 +353,12 @@ class SAML_Hide_Login {
      * Check if the current request is login-related
      */
     private function is_login_related_request() {
-        // Check if it's wp-login.php, custom login slug, default /login, or admin area
+        // Check if it's wp-login.php, custom login slug, or default /login
+        // DO NOT intercept general wp-admin access - let WordPress handle it normally
         return (
             $this->is_wp_login_request() ||
             $this->is_custom_login_request() ||
-            $this->is_default_login_request() ||
-            (is_admin() && !is_user_logged_in() && !defined('DOING_AJAX'))
+            $this->is_default_login_request()
         );
     }
 
@@ -471,12 +469,8 @@ class SAML_Hide_Login {
             }
         }
 
-        // Block wp-admin access for non-logged-in users
-        if (is_admin() && !is_user_logged_in() && !defined('DOING_AJAX') &&
-            $pagenow !== 'admin-post.php') {
-            shl_log('wp-admin access blocked for non-logged-in user');
-            $this->wp_template_redirect();
-        }
+        // DO NOT block wp-admin access - let WordPress handle authentication redirects normally
+        // This allows other plugins' admin pages to work correctly
     }
 
     /**
