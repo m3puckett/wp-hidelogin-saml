@@ -3,7 +3,7 @@
  * Plugin Name: Hide WP Login SAML
  * Plugin URI: https://github.com/m3puckett/wp-hidelogin-saml
  * Description: Hides the WordPress login page with a custom URL while preserving SAML authentication functionality
- * Version: 2.1.5
+ * Version: 2.1.6
  * Author: Mark Puckett
  * Author URI: https://github.com/m3puckett
  * License: GPL v3
@@ -23,7 +23,7 @@ if (!defined('ABSPATH')) {
 }
 
 // Plugin constants
-define('SHL_VERSION', '2.1.5');
+define('SHL_VERSION', '2.1.6');
 define('SHL_PLUGIN_FILE', __FILE__);
 define('SHL_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('SHL_DEBUG', true); // Set to true for debugging
@@ -49,12 +49,158 @@ if (file_exists($autoload_file)) {
 }
 
 /**
- * Debug logging function
+ * Get cached login slug (avoids repeated DB queries)
+ */
+function shl_get_login_slug() {
+    static $slug = null;
+
+    if ($slug === null) {
+        // Try object cache first (if available)
+        $slug = wp_cache_get('shl_login_slug', 'saml_hide_login');
+
+        if ($slug === false) {
+            // Cache miss - query database
+            $slug = get_option('shl_login_slug', 'login');
+
+            // Store in object cache for 1 hour
+            wp_cache_set('shl_login_slug', $slug, 'saml_hide_login', 3600);
+        }
+    }
+
+    return $slug;
+}
+
+/**
+ * Early detection of login-related requests (runs before class instantiation)
+ */
+function shl_is_login_related_request() {
+    // Skip for AJAX, cron, and CLI
+    if (defined('DOING_AJAX') || defined('DOING_CRON') || (defined('WP_CLI') && WP_CLI)) {
+        return false;
+    }
+
+    if (!isset($_SERVER['REQUEST_URI'])) {
+        return false;
+    }
+
+    $request_uri = $_SERVER['REQUEST_URI'];
+    $request_path = parse_url($request_uri, PHP_URL_PATH);
+
+    // Check for wp-login.php
+    if ($request_path && basename($request_path) === 'wp-login.php') {
+        return true;
+    }
+
+    // Check for custom login slug or default /login
+    $custom_slug = shl_get_login_slug();
+    $home_path = parse_url(home_url(), PHP_URL_PATH);
+    $home_path = $home_path ? trim($home_path, '/') : '';
+    $request_path = $request_path ? trim($request_path, '/') : '';
+
+    // Remove home path from request path
+    if ($home_path && strpos($request_path, $home_path) === 0) {
+        $request_path = substr($request_path, strlen($home_path));
+        $request_path = ltrim($request_path, '/');
+    }
+
+    // Check if it matches custom slug or default 'login'
+    if ($request_path === $custom_slug || $request_path === 'login') {
+        return true;
+    }
+
+    // Check for SAML parameters
+    if (isset($_REQUEST['saml_acs']) || isset($_REQUEST['saml_sso']) ||
+        isset($_REQUEST['saml_sls']) || isset($_REQUEST['SAMLResponse']) ||
+        isset($_REQUEST['SAMLRequest'])) {
+        return true;
+    }
+
+    // Check for admin access by non-logged-in users
+    if (is_admin() && !is_user_logged_in() && !defined('DOING_AJAX')) {
+        return true;
+    }
+
+    return false;
+}
+
+/**
+ * Debug logging function (only logs on login-related requests)
  */
 function shl_log($message) {
-    if (SHL_DEBUG) {
+    if (SHL_DEBUG && shl_is_login_related_request()) {
         error_log('[SAML Hide Login] ' . $message);
     }
+}
+
+/**
+ * Standalone URL filter functions (lightweight, no class instantiation needed)
+ * These are used on non-login pages to minimize overhead
+ */
+
+/**
+ * Filter login_url - rewrite wp-login.php to custom slug
+ */
+function shl_filter_login_url($login_url, $redirect, $force_reauth) {
+    // Skip SAML requests
+    if (strpos($login_url, 'wp-login.php') !== false) {
+        $query_string = parse_url($login_url, PHP_URL_QUERY);
+        if ($query_string && (
+            strpos($query_string, 'saml_acs') !== false ||
+            strpos($query_string, 'saml_sso') !== false ||
+            strpos($query_string, 'saml_sls') !== false
+        )) {
+            return $login_url;
+        }
+
+        // Replace with custom slug
+        $login_url = home_url(shl_get_login_slug());
+    }
+
+    if (!empty($redirect)) {
+        $login_url = add_query_arg('redirect_to', urlencode($redirect), $login_url);
+    }
+
+    if ($force_reauth) {
+        $login_url = add_query_arg('reauth', '1', $login_url);
+    }
+
+    return $login_url;
+}
+
+/**
+ * Filter logout_url - rewrite wp-login.php to custom slug
+ */
+function shl_filter_logout_url($logout_url, $redirect) {
+    if (strpos($logout_url, 'wp-login.php') !== false) {
+        $parsed = parse_url($logout_url);
+        $logout_url = home_url(shl_get_login_slug());
+
+        // Preserve query parameters
+        if (!empty($parsed['query'])) {
+            parse_str($parsed['query'], $query_params);
+            $logout_url = add_query_arg($query_params, $logout_url);
+        }
+    }
+
+    return $logout_url;
+}
+
+/**
+ * Filter lostpassword_url - rewrite wp-login.php to custom slug
+ */
+function shl_filter_lostpassword_url($lostpassword_url, $redirect) {
+    if (strpos($lostpassword_url, 'wp-login.php') !== false) {
+        $parsed = parse_url($lostpassword_url);
+        $lostpassword_url = home_url(shl_get_login_slug());
+
+        // Preserve query parameters
+        if (!empty($parsed['query'])) {
+            parse_str($parsed['query'], $query_params);
+            $lostpassword_url = add_query_arg($query_params, $lostpassword_url);
+        }
+    }
+
+    return $lostpassword_url;
 }
 
 /**
@@ -65,10 +211,10 @@ class SAML_Hide_Login {
     private $custom_login_slug = 'login'; // Default slug
 
     public function __construct() {
-        // Get custom login slug from options
-        $this->custom_login_slug = get_option('shl_login_slug', 'login');
+        // Get custom login slug from cached function (avoids DB query)
+        $this->custom_login_slug = shl_get_login_slug();
 
-        shl_log('Plugin initialized with slug: ' . $this->custom_login_slug);
+        shl_log('Full plugin initialized with slug: ' . $this->custom_login_slug);
 
         // Initialize hooks
         $this->init_hooks();
@@ -679,11 +825,24 @@ class SAML_Hide_Login {
     }
 }
 
-// Initialize the plugin
+// Initialize the plugin (smart loading based on request type)
 function saml_hide_login_init() {
     global $saml_hide_login;
-    $saml_hide_login = new SAML_Hide_Login();
-    shl_log('Plugin instance created');
+
+    // Check if this is a login-related request
+    if (shl_is_login_related_request()) {
+        // Load full plugin for login pages
+        $saml_hide_login = new SAML_Hide_Login();
+        shl_log('Full plugin instance created for login request');
+    } else {
+        // For non-login pages, only register lightweight URL filters
+        // This avoids the overhead of instantiating the full class
+        add_filter('login_url', 'shl_filter_login_url', 10, 3);
+        add_filter('logout_url', 'shl_filter_logout_url', 10, 2);
+        add_filter('lostpassword_url', 'shl_filter_lostpassword_url', 10, 2);
+
+        // No logging on regular pages to reduce noise
+    }
 }
 add_action('plugins_loaded', 'saml_hide_login_init', 1);
 

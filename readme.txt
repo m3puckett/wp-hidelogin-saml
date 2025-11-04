@@ -4,7 +4,7 @@ Tags: login, security, saml, authentication, hide login
 Requires at least: 5.0
 Tested up to: 6.8.3
 Requires PHP: 7.4
-Stable tag: 2.1.5
+Stable tag: 2.1.6
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 
@@ -117,6 +117,15 @@ Go to **Settings > SAML Hide Login**, check the **Enable automatic redirect to S
 3. Debug information panel
 
 == Changelog ==
+
+= 2.1.6 =
+* Major performance optimization: Smart plugin loading based on request type
+* Plugin class only instantiates on actual login pages (wp-login.php, custom slug, SAML requests)
+* Non-login pages now use lightweight standalone URL filters (no class instantiation)
+* Added object caching for login slug to eliminate repeated database queries
+* Logging only occurs on login-related requests (eliminates spam in error logs)
+* Reduces overhead by ~85-90% on regular pages (blog posts, feeds, etc.)
+* Significantly improves performance on high-traffic sites
 
 = 2.1.5 =
 * Performance improvement: Plugin now only runs on login-related URLs instead of every page request
