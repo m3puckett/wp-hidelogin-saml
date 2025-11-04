@@ -441,8 +441,14 @@ class SAML_Hide_Login {
 
             // If auto-redirect is enabled and this is not a SAML callback
             if ($auto_redirect_enabled && !$is_saml) {
-                // If user is already logged in, redirect them away from login page
-                if ($is_logged_in) {
+                // Check if this is a special action request that should not be redirected
+                // Allow: logout, password reset, etc.
+                $action = isset($_GET['action']) ? $_GET['action'] : '';
+                $allowed_actions = array('logout', 'lostpassword', 'retrievepassword', 'rp', 'resetpass', 'postpass');
+                $is_allowed_action = in_array($action, $allowed_actions);
+
+                // If user is already logged in (and not performing a special action), redirect them away from login page
+                if ($is_logged_in && !$is_allowed_action) {
                     shl_log('User already logged in - redirecting to destination');
                     // Get redirect_to parameter or default to admin
                     $redirect_to = isset($_GET['redirect_to']) ? wp_validate_redirect($_GET['redirect_to'], admin_url()) : admin_url();
@@ -450,18 +456,24 @@ class SAML_Hide_Login {
                     exit;
                 }
 
-                // User is not logged in, redirect to SAML SSO
-                shl_log('Auto-redirect to SAML enabled - redirecting to SAML SSO');
-                $saml_sso_url = site_url('wp-login.php?saml_sso');
+                // User is not logged in and not performing a special action, redirect to SAML SSO
+                if (!$is_logged_in && !$is_allowed_action) {
+                    shl_log('Auto-redirect to SAML enabled - redirecting to SAML SSO');
+                    $saml_sso_url = site_url('wp-login.php?saml_sso');
 
-                // Preserve redirect_to parameter if present (with validation to prevent open redirects)
-                if (isset($_GET['redirect_to'])) {
-                    $redirect_to = wp_validate_redirect($_GET['redirect_to'], admin_url());
-                    $saml_sso_url = add_query_arg('redirect_to', urlencode($redirect_to), $saml_sso_url);
+                    // Preserve redirect_to parameter if present (with validation to prevent open redirects)
+                    if (isset($_GET['redirect_to'])) {
+                        $redirect_to = wp_validate_redirect($_GET['redirect_to'], admin_url());
+                        $saml_sso_url = add_query_arg('redirect_to', urlencode($redirect_to), $saml_sso_url);
+                    }
+
+                    wp_redirect($saml_sso_url);
+                    exit;
                 }
 
-                wp_redirect($saml_sso_url);
-                exit;
+                // If we reach here, it's a special action (logout, password reset, etc.)
+                // Fall through to load wp-login.php normally
+                shl_log('Special action detected (' . $action . ') - allowing wp-login.php to handle it');
             }
 
             shl_log('Loading wp-login.php');
