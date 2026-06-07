@@ -431,7 +431,8 @@ class SAML_Hide_Login {
 
                 // User is not logged in, redirect to SAML SSO
                 shl_log('Auto-redirect to SAML enabled - redirecting to SAML SSO');
-                $saml_sso_url = site_url('wp-login.php?saml_sso');
+                // $saml_sso_url = site_url('wp-login.php?saml_sso');
+                $saml_sso_url = site_url('wp-login.php?action=wp-saml-auth');
 
                 // Preserve redirect_to parameter if present (with validation to prevent open redirects)
                 if (isset($_GET['redirect_to'])) {
