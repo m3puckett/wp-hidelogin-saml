@@ -4,7 +4,7 @@ Tags: login, security, saml, authentication, hide login
 Requires at least: 5.0
 Tested up to: 6.8.3
 Requires PHP: 7.4
-Stable tag: 3.0.2
+Stable tag: 3.0.4
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 
@@ -118,6 +118,9 @@ Go to **Settings > SAML Hide Login**, check the **Enable automatic redirect to S
 
 == Changelog ==
 
+= 3.0.4 =
+* Version bump for WordPress update detection and release rollout
+
 = 3.0.2 =
 * Fixed missing Settings page in WordPress admin (Settings > Hide Login)
 * Smart loading optimization now properly loads plugin in admin area for logged-in users
@@ -177,6 +180,9 @@ Go to **Settings > SAML Hide Login**, check the **Enable automatic redirect to S
 * Initial release
 
 == Upgrade Notice ==
+
+= 3.0.4 =
+Version bump release to ensure WordPress sites detect and apply the latest plugin update.
 
 = 3.0.2 =
 Fixes missing Settings page in admin. If you can't see Settings > Hide Login after upgrading to 3.0.0 or 3.0.1, update to 3.0.2.
